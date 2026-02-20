@@ -141,14 +141,22 @@ CREATE TABLE following (
     media_count INT DEFAULT 0,
     is_private BOOLEAN DEFAULT FALSE,
     followed_at DATETIME,  -- Date user started following this account
+    unfollowed_at DATETIME,  -- Date user unfollowed this account
     synced_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    kanban_status ENUM('to_review', 'ready_to_unfollow', 'unfollowed', 'not_now') DEFAULT 'to_review',
+    kanban_notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     UNIQUE KEY unique_user_account (user_id, instagram_account_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_instagram_username (instagram_username),
     INDEX idx_followed_at (followed_at),
+    INDEX idx_unfollowed_at (unfollowed_at),
     INDEX idx_synced_at (synced_at),
-    INDEX idx_is_verified (is_verified)
+    INDEX idx_is_verified (is_verified),
+    INDEX idx_kanban_status (kanban_status),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /**
