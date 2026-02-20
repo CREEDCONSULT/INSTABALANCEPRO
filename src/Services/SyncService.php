@@ -76,6 +76,10 @@ class SyncService
             $this->updateStatus('in_progress', 'Calculating engagement metrics');
             $this->calculateEngagementMetrics($userId);
 
+            // Calculate account scores and categories
+            $this->updateStatus('in_progress', 'Scoring accounts');
+            $this->scoreAccounts($userId);
+
             // Commit transaction
             $this->db->commit();
 
@@ -458,6 +462,23 @@ class SyncService
         // Log any errors that occurred
         if (!empty($result['errors'])) {
             error_log('Engagement calculation errors for user ' . $userId . ': ' . json_encode($result['errors']));
+        }
+    }
+
+    /**
+     * Score all accounts based on engagement and account characteristics
+     * 
+     * @param int $userId User ID
+     */
+    private function scoreAccounts($userId)
+    {
+        // Use ScoringService to calculate comprehensive scores
+        $scoringService = new ScoringService($this->db);
+        $result = $scoringService->scoreAllFollowing($userId);
+
+        // Log any errors that occurred
+        if (!empty($result['errors'])) {
+            error_log('Scoring calculation errors for user ' . $userId . ': ' . json_encode($result['errors']));
         }
     }
 
