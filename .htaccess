@@ -1,0 +1,40 @@
+# InstaBAlancePRO .htaccess - Apache URL Rewriting
+# Enables clean URL routing to public/index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Remove public from URL (if accessed directly)
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Inside public directory - route all requests to index.php
+    RewriteBase /public/
+    
+    # Don't rewrite existing files and directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Rewrite all other requests to index.php
+    RewriteRule ^(.*)$ index.php?path=$1 [QSA,L]
+</IfModule>
+
+# Compress output
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript
+</IfModule>
+
+# PHP settings
+<IfModule mod_php.c>
+    php_value post_max_size 100M
+    php_value upload_max_filesize 100M
+    php_value memory_limit 256M
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
