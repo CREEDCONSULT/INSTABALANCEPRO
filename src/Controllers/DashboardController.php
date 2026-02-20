@@ -94,7 +94,15 @@ class DashboardController extends Controller
         // Log activity
         ActivityLog::log($this->db, $userId, 'sync_started', 'Initiated follower synchronization');
 
-        // TODO: Queue background sync job to cron/sync.php
+        // Queue background sync job
+        // On production servers, this should be triggered via cron job or message queue
+        // For now, we attempt to trigger it asynchronously
+        try {
+            $this->queueSyncJob($syncJob->id);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request - sync job is created
+            error_log('Failed to queue background sync: ' . $e->getMessage());
+        }
 
         return $this->json([
             'success' => true,
@@ -167,6 +175,30 @@ class DashboardController extends Controller
         ActivityLog::log($this->db, $userId, 'sync_cancelled', 'Cancelled follower synchronization');
 
         return $this->jsonSuccess('Sync cancelled');
+    }
+
+    /**
+     * Queue background sync job
+     * Attempts to trigger the cron job asynchronously
+     */
+    private function queueSyncJob(int $syncJobId): void
+    {
+        // Determine PHP executable path
+        $php = PHP_EXECUTABLE ?: 'php';
+        $cronScript = dirname(__DIR__, 2) . '/cron/sync.php';
+
+        // Build command - background execution varies by OS
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Windows: Use start command to run in background
+            $command = "start /B $php \"$cronScript\" > nul 2>&1";
+            pclose(popen($command, 'r'));
+        } else {
+            // Linux/Mac: Use nohup or & for background execution
+            $command = "nohup $php \"$cronScript\" > /dev/null 2>&1 &";
+            shell_exec($command);
+        }
+
+        // Note: In production, use proper job queue (Beanstalkd, Redis, RabbitMQ, etc.)
     }
 
     /**

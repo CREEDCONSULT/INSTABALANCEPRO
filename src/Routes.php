@@ -36,7 +36,7 @@ function registerRoutes(Router $router): void
         $r->post('/logout', 'AuthController@logout', ['auth']);
 
         // Instagram OAuth
-        $r->get('/instagram/redirect', 'AuthController@instagramRedirect');
+        $r->get('/connect-instagram', 'AuthController@connectInstagram');
         $r->get('/instagram/callback', 'AuthController@instagramCallback');
 
         // Email verification

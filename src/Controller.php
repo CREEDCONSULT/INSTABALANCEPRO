@@ -338,4 +338,27 @@ abstract class Controller
     {
         return array_merge($this->viewData, $data);
     }
+
+    /**
+     * Get client IP address
+     * 
+     * @return string Client IP address
+     */
+    protected function getClientIp(): string
+    {
+        // Check for IP from shared internet
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+            $ip = $_SERVER['HTTP_CLIENT_IP'];
+        }
+        // Check for IP passed from proxy
+        elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+        }
+        // Direct server IP
+        else {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        }
+        
+        return trim($ip);
+    }
 }

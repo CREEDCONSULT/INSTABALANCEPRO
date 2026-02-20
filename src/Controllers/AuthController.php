@@ -13,6 +13,39 @@ use App\Services\EncryptionService;
 class AuthController extends Controller
 {
     /**
+     * Initiate Instagram OAuth connection
+     */
+    public function connectInstagram()
+    {
+        if (!$this->isAuthenticated()) {
+            $this->redirect('/auth/login');
+        }
+
+        try {
+            $config = require __DIR__ . '/../../config/app.php';
+            $apiService = new \App\Services\InstagramApiService(
+                $config['instagram']['app_id'],
+                $config['instagram']['app_secret'],
+                $config['instagram']['redirect_uri']
+            );
+
+            // Generate CSRF state token
+            $state = bin2hex(random_bytes(16));
+            $_SESSION['oauth_state'] = $state;
+
+            // Get authorization URL
+            $authUrl = $apiService->getAuthorizationUrl($state);
+
+            return $this->redirect($authUrl);
+
+        } catch (\Exception $e) {
+            error_log('Failed to initiate Instagram OAuth: ' . $e->getMessage());
+            $this->flash('error', 'Failed to connect Instagram. Please try again.');
+            return $this->redirect('/dashboard/settings');
+        }
+    }
+
+    /**
      * Show registration form
      */
     public function showRegister()
@@ -194,15 +227,133 @@ class AuthController extends Controller
      */
     public function instagramCallback()
     {
-        $code = $this->get('code');
-        $state = $this->get('state');
-
-        if (!$code) {
-            return $this->abortWithFlash(400, 'Instagram authorization failed');
+        if (!$this->isAuthenticated()) {
+            $this->redirect('/auth/login');
         }
 
-        // TODO: Exchange code for token
-        echo '<h1>Instagram Connected!</h1>';
+        $code = $this->get('code');
+        $state = $this->get('state');
+        $error = $this->get('error');
+        $errorDescription = $this->get('error_description');
+
+        // Check for OAuth errors
+        if ($error) {
+            $this->flash('error', 'Instagram authorization failed: ' . ($errorDescription ?? $error));
+            return $this->redirect('/dashboard/settings');
+        }
+
+        if (!$code) {
+            $this->flash('error', 'Instagram authorization code not provided');
+            return $this->redirect('/dashboard/settings');
+        }
+
+        // Verify state token matches session (CSRF protection)
+        $sessionState = $_SESSION['oauth_state'] ?? null;
+        if (!$state || !$sessionState || $state !== $sessionState) {
+            $this->flash('error', 'Invalid OAuth state token');
+            return $this->redirect('/dashboard/settings');
+        }
+
+        try {
+            $userId = $_SESSION['user_id'];
+            
+            // Create Instagram API service
+            $config = require __DIR__ . '/../../config/app.php';
+            $apiService = new \App\Services\InstagramApiService(
+                $config['instagram']['app_id'],
+                $config['instagram']['app_secret'],
+                $config['instagram']['redirect_uri']
+            );
+
+            // Exchange code for access token
+            $tokenResponse = $apiService->exchangeCodeForToken($code);
+
+            if (!isset($tokenResponse['access_token'])) {
+                throw new \Exception('Failed to get access token from Instagram');
+            }
+
+            $accessToken = $tokenResponse['access_token'];
+            $userId_ig = $tokenResponse['user_id'] ?? null;
+            $expiresIn = $tokenResponse['expires_in'] ?? null;
+
+            // Get account info to verify connection
+            $apiService->setUserToken($accessToken);
+            $accountInfo = $apiService->getBusinessAccount();
+
+            // Encrypt token before storage
+            $encryption = new \App\Services\EncryptionService(
+                $config['encryption']['key'],
+                $_ENV['ENCRYPTION_IV'] ?? ''
+            );
+            $encryptedToken = $encryption->encrypt($accessToken);
+
+            // Store Instagram connection
+            $stmt = $this->db->prepare("
+                INSERT INTO instagram_connections (user_id, instagram_account_id, instagram_username, access_token, refresh_token, expires_at, connected_at)
+                VALUES (?, ?, ?, ?, ?, FROM_UNIXTIME(?), NOW())
+                ON DUPLICATE KEY UPDATE
+                    access_token = VALUES(access_token),
+                    refresh_token = VALUES(refresh_token),
+                    expires_at = VALUES(expires_at),
+                    updated_at = NOW()
+            ");
+
+            $expiresAt = $expiresIn ? (time() + $expiresIn) : null;
+
+            $stmt->execute([
+                $userId,
+                $accountInfo['id'],
+                $accountInfo['username'] ?? '',
+                $encryptedToken,
+                null, // refresh_token - implement token refresh if needed
+                $expiresAt,
+            ]);
+
+            // Update user record with Instagram info
+            $updateStmt = $this->db->prepare("
+                UPDATE users SET
+                    instagram_account_id = ?,
+                    instagram_access_token = 'encrypted',
+                    instagram_username = ?,
+                    instagram_followers_count = ?,
+                    instagram_profile_picture = ?
+                WHERE id = ?
+            ");
+
+            $updateStmt->execute([
+                $accountInfo['id'],
+                $accountInfo['username'] ?? '',
+                $accountInfo['followers_count'] ?? 0,
+                $accountInfo['profile_picture_url'] ?? '',
+                $userId,
+            ]);
+
+            // Log the connection event
+            \App\Models\ActivityLog::log(
+                $this->db,
+                $userId,
+                'instagram_connected',
+                'Connected Instagram account @' . ($accountInfo['username'] ?? 'unknown'),
+                ['instagram_username' => $accountInfo['username'] ?? '', 'instagram_id' => $accountInfo['id']],
+                $this->getClientIp(),
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            );
+
+            // Create initial sync job
+            $syncJob = \App\Models\SyncJob::createForUser($this->db, $userId);
+
+            $this->flash('success', 'Instagram account connected! Starting initial sync...');
+            return $this->redirect('/dashboard');
+
+        } catch (\Exception $e) {
+            error_log('Instagram OAuth error: ' . $e->getMessage());
+            $this->flash('error', 'Failed to connect Instagram: ' . $e->getMessage());
+            return $this->redirect('/dashboard/settings');
+        }
+        finally {
+            // Clean up OAuth state
+            unset($_SESSION['oauth_state']);
+        }
     }
 
     /**
