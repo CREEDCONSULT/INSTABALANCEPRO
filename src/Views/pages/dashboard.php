@@ -3,8 +3,24 @@
  * Dashboard Page - src/Views/pages/dashboard.php
  * 
  * Main dashboard with KPIs and activity feed for authenticated users
+ * Data provided by DashboardController
  */
 $pageTitle = 'Dashboard';
+
+// Use default values if not provided by controller
+$kpis = $kpis ?? [
+    'following' => 0,
+    'followers' => 0,
+    'newUnfollowers' => 0,
+    'notFollowingBack' => 0,
+    'whitelisted' => 0,
+];
+
+$lastSyncTimeAgo = $lastSyncTimeAgo ?? 'Never';
+$syncInProgress = $syncInProgress ?? false;
+$syncProgress = $syncProgress ?? null;
+$activities = $activities ?? [];
+$subscriptionTier = $subscriptionTier ?? 'free';
 ?>
 
 <div class="container-fluid">
@@ -24,11 +40,11 @@ $pageTitle = 'Dashboard';
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-1 small">Total Following</p>
-                            <h3 class="mb-0">2,847</h3>
+                            <h3 class="mb-0"><?php echo number_format($kpis['following']); ?></h3>
                         </div>
                         <i class="bi bi-people text-primary" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <small class="text-muted">+23 since last sync</small>
+                    <small class="text-muted">Instagram accounts</small>
                 </div>
             </div>
         </div>
@@ -39,7 +55,7 @@ $pageTitle = 'Dashboard';
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-1 small">New Unfollowers</p>
-                            <h3 class="mb-0 text-danger">142</h3>
+                            <h3 class="mb-0 text-danger"><?php echo number_format($kpis['newUnfollowers']); ?></h3>
                         </div>
                         <i class="bi bi-graph-down text-danger" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
@@ -54,7 +70,7 @@ $pageTitle = 'Dashboard';
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-1 small">Not Following Back</p>
-                            <h3 class="mb-0 text-warning">456</h3>
+                            <h3 class="mb-0 text-warning"><?php echo number_format($kpis['notFollowingBack']); ?></h3>
                         </div>
                         <i class="bi bi-exclamation-triangle text-warning" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
@@ -69,7 +85,7 @@ $pageTitle = 'Dashboard';
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="text-muted mb-1 small">Whitelisted</p>
-                            <h3 class="mb-0 text-success">78</h3>
+                            <h3 class="mb-0 text-success"><?php echo number_format($kpis['whitelisted']); ?></h3>
                         </div>
                         <i class="bi bi-check-circle text-success" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
@@ -79,31 +95,54 @@ $pageTitle = 'Dashboard';
         </div>
     </div>
     
+    <!-- Sync Status Card -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Sync Status</h5>
-                    <button class="btn btn-sm btn-primary" id="syncBtn" hx-post="/api/sync" hx-swap="innerHTML">
-                        <i class="bi bi-arrow-clockwise"></i> Sync Now
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-primary" id="syncBtn" hx-post="/dashboard/sync" hx-swap="none">
+                            <i class="bi bi-arrow-clockwise"></i> Sync Now
+                        </button>
+                        <?php if ($syncInProgress): ?>
+                            <button type="button" class="btn btn-sm btn-danger" id="cancelSyncBtn" hx-post="/dashboard/cancel-sync" hx-swap="none">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <p class="mb-1 text-muted">Last Synced</p>
-                            <p class="mb-0 fw-bold">2 hours ago</p>
+                            <p class="mb-0 fw-bold"><?php echo htmlspecialchars($lastSyncTimeAgo); ?></p>
                         </div>
                         <div class="text-end">
-                            <span class="badge bg-success">Synced</span>
+                            <?php if ($syncInProgress): ?>
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-arrow-clockwise"></i> Syncing...
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-success">Ready</span>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <div id="syncProgress" style="display: none;">
-                        <div class="progress mb-3" style="height: 6px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" id="syncBar" style="width: 0%"></div>
+                    
+                    <?php if ($syncInProgress && $syncProgress): ?>
+                        <div id="syncProgress">
+                            <div class="mb-2 d-flex justify-content-between">
+                                <small class="text-muted">Progress</small>
+                                <small class="text-muted"><?php echo $syncProgress['percent']; ?>%</small>
+                            </div>
+                            <div class="progress mb-3" style="height: 6px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: <?php echo $syncProgress['percent']; ?>%"></div>
+                            </div>
+                            <small class="text-muted">
+                                Processing <?php echo number_format($syncProgress['processed']); ?> of <?php echo number_format($syncProgress['total']); ?> accounts...
+                            </small>
                         </div>
-                        <small class="text-muted">Syncing follower data...</small>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -117,39 +156,24 @@ $pageTitle = 'Dashboard';
                     <h5 class="mb-0">Recent Activity</h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex gap-3 py-3">
-                            <i class="bi bi-person-x text-danger" style="font-size: 1.5rem;"></i>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">You unfollowed <strong>@_profile_name</strong></p>
-                                <small class="text-muted">2 hours ago</small>
-                            </div>
+                    <?php if (!empty($activities)): ?>
+                        <div class="list-group list-group-flush">
+                            <?php foreach ($activities as $activity): ?>
+                                <div class="list-group-item d-flex gap-3 py-3">
+                                    <i class="bi <?php echo $this->getActivityIcon($activity['action']) ?? 'bi-info-circle'; ?>" style="font-size: 1.5rem;"></i>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0 fw-500"><?php echo htmlspecialchars($activity['description']); ?></p>
+                                        <small class="text-muted"><?php echo htmlspecialchars($activity['timeAgo']); ?></small>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                        
-                        <div class="list-group-item d-flex gap-3 py-3">
-                            <i class="bi bi-person-plus text-success" style="font-size: 1.5rem;"></i>
-                            <div class="flex-grow-1">
-                                <p class="mb-0"><strong>@new_follower</strong> started following you</p>
-                                <small class="text-muted">4 hours ago</small>
-                            </div>
+                    <?php else: ?>
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mt-3">No activity yet. Start by syncing your follower data.</p>
                         </div>
-                        
-                        <div class="list-group-item d-flex gap-3 py-3">
-                            <i class="bi bi-sync text-primary" style="font-size: 1.5rem;"></i>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">Instagram sync completed (2,847 following, 1,234 followers)</p>
-                                <small class="text-muted">Yesterday</small>
-                            </div>
-                        </div>
-                        
-                        <div class="list-group-item d-flex gap-3 py-3">
-                            <i class="bi bi-check2-square text-info" style="font-size: 1.5rem;"></i>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">Whitelisted <strong>@important_account</strong></p>
-                                <small class="text-muted">2 days ago</small>
-                            </div>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -183,7 +207,15 @@ $pageTitle = 'Dashboard';
                 <div class="card-body">
                     <p class="mb-2 small text-muted">Plan</p>
                     <h6 class="mb-3">
-                        <span class="badge bg-primary"><?php echo htmlspecialchars($_SESSION['tier'] ?? 'Free'); ?></span>
+                        <span class="badge bg-<?php 
+                            echo match($subscriptionTier) {
+                                'premium' => 'danger',
+                                'pro' => 'primary',
+                                default => 'secondary'
+                            };
+                        ?>">
+                            <?php echo ucfirst($subscriptionTier); ?>
+                        </span>
                     </h6>
                     <p class="mb-3 small">
                         Get more sync frequency and advanced features by upgrading your plan.
@@ -199,29 +231,33 @@ $pageTitle = 'Dashboard';
 
 <script>
     // Sync button handler
-    document.getElementById('syncBtn').addEventListener('click', function() {
-        const syncProgress = document.getElementById('syncProgress');
-        const syncBar = document.getElementById('syncBar');
+    document.getElementById('syncBtn')?.addEventListener('htmx:afterSwap', function() {
+        Notification.success('Sync started successfully');
         
-        syncProgress.style.display = 'block';
-        
-        // Simulate progress
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 30;
-            if (progress > 90) progress = 90;
-            
-            syncBar.style.width = progress + '%';
-        }, 300);
-        
-        // Complete after 3 seconds
-        setTimeout(() => {
-            clearInterval(interval);
-            syncBar.style.width = '100%';
-            setTimeout(() => {
-                syncProgress.style.display = 'none';
-                Notification.success('Sync completed successfully!');
-            }, 500);
-        }, 3000);
+        // Poll for updates every 2 seconds
+        let pollCount = 0;
+        let pollInterval = setInterval(() => {
+            fetch('/dashboard/sync-status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        location.reload();
+                    }
+                })
+                .catch(() => {
+                    pollCount++;
+                    if (pollCount > 30) clearInterval(pollInterval); // Stop after 60 seconds
+                });
+        }, 2000);
+    });
+    
+    document.getElementById('syncBtn')?.addEventListener('htmx:responseError', function() {
+        Notification.error('Failed to start sync');
+    });
+    
+    document.getElementById('cancelSyncBtn')?.addEventListener('htmx:afterSwap', function() {
+        Notification.success('Sync cancelled');
+        setTimeout(() => location.reload(), 1000);
     });
 </script>
