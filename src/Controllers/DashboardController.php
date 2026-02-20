@@ -14,9 +14,10 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // TODO: Load user's KPI data, sync status, activity feed
-        echo '<h1>Dashboard</h1>';
-        echo '<p>Dashboard content coming in PROMPT 6.</p>';
+        // TODO: Load user's KPI data, sync status, activity feed from database
+        return $this->view('pages/dashboard', [
+            'pageTitle' => 'Dashboard'
+        ]);
     }
 
     /**

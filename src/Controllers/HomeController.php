@@ -14,8 +14,8 @@ class HomeController extends Controller
      */
     public function index()
     {
-        // TODO: Render home/landing page template
-        echo '<h1>Welcome to UnfollowIQ</h1>';
-        echo '<p>Home page content coming in PROMPT 5.</p>';
+        return $this->view('pages/home', [
+            'pageTitle' => 'Home'
+        ]);
     }
 }

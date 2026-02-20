@@ -20,7 +20,9 @@ class AuthController extends Controller
         if ($this->isAuthenticated()) {
             $this->redirect('/dashboard');
         }
-        $this->view('pages/auth/register');
+        return $this->view('pages/auth/register', [
+            'pageTitle' => 'Register'
+        ]);
     }
 
     /**
@@ -87,7 +89,9 @@ class AuthController extends Controller
         if ($this->isAuthenticated()) {
             $this->redirect('/dashboard');
         }
-        $this->view('pages/auth/login');
+        return $this->view('pages/auth/login', [
+            'pageTitle' => 'Login'
+        ]);
     }
 
     /**

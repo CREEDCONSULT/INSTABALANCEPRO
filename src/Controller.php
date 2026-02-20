@@ -29,12 +29,13 @@ abstract class Controller
     }
 
     /**
-     * Render a view template
+     * Render a view template with main layout wrapper
      * 
      * @param string $view View path (e.g., 'pages/dashboard', 'partials/card')
      * @param array $data Data to pass to view
+     * @param bool $withLayout Include main layout (false for AJAX/partials)
      */
-    protected function view(string $view, array $data = []): void
+    protected function view(string $view, array $data = [], bool $withLayout = true): void
     {
         $viewPath = ROOT_PATH . '/src/Views/' . $view . '.php';
 
@@ -43,11 +44,36 @@ abstract class Controller
             die("View not found: $view");
         }
 
+        // Merge and prepare view data
+        $viewData = $this->mergeViewData($data);
+        
+        // Add global view variables
+        $viewData['isAuthenticated'] = $this->isAuthenticated();
+        $viewData['isAdmin'] = $this->isAdmin();
+        $viewData['user'] = $this->getUser();
+        $viewData['csrf_token'] = $_SESSION['csrf_token'] ?? '';
+        
         // Extract data into local scope
-        extract($this->mergeViewData($data));
+        extract($viewData);
 
-        // Include the view
+        // If AJAX request or marked as partial, render without layout
+        if ($this->isAjax() || !$withLayout) {
+            include $viewPath;
+            return;
+        }
+
+        // Capture content output
+        ob_start();
         include $viewPath;
+        $pageContent = ob_get_clean();
+
+        // Set page title if not already set
+        if (!isset($pageTitle)) {
+            $pageTitle = ucfirst(str_replace('/', ' ', $view));
+        }
+
+        // Now render main layout with captured content
+        include ROOT_PATH . '/src/Views/layouts/main.php';
     }
 
     /**
@@ -58,7 +84,7 @@ abstract class Controller
      */
     protected function partial(string $partial, array $data = []): void
     {
-        $this->view($partial, $data);
+        $this->view($partial, $data, false);
     }
 
     /**
