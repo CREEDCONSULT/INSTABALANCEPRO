@@ -451,18 +451,14 @@ class SyncService
      */
     private function calculateEngagementMetrics($userId)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO account_insights (user_id, following_id, last_interaction_at, engagement_gap_days, engagement_score, category, created_at)
-            SELECT f.user_id, f.id, NOW(), 0, 0, 'Pending Analysis', NOW()
-            FROM following f
-            WHERE f.user_id = ? AND f.unfollowed_at IS NULL
-            ON DUPLICATE KEY UPDATE
-                last_interaction_at = NOW(),
-                engagement_gap_days = 0,
-                updated_at = NOW()
-        ");
+        // Use EngagementService to calculate real engagement metrics
+        $engagementService = new EngagementService($this->db);
+        $result = $engagementService->calculateForAllFollowing($userId);
 
-        $stmt->execute([$userId]);
+        // Log any errors that occurred
+        if (!empty($result['errors'])) {
+            error_log('Engagement calculation errors for user ' . $userId . ': ' . json_encode($result['errors']));
+        }
     }
 
     /**
