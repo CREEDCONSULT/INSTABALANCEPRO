@@ -66,11 +66,14 @@ function registerRoutes(Router $router): void
         $r->get('/dashboard/sync-status', 'DashboardController@syncStatus');
 
         // Unfollowers / Ranked List
-        $r->get('/unfollowers', 'UnfollowController@index');
-        $r->get('/api/unfollowers/list', 'UnfollowController@listFollowing');
-        $r->post('/api/unfollowers/{id}/unfollow', 'UnfollowController@unfollowSingle');
-        $r->post('/api/unfollowers/bulk/preview', 'UnfollowController@bulkUnfollowPreview');
-        $r->post('/api/unfollowers/bulk/execute', 'UnfollowController@bulkUnfollowExecute');
+        $r->get('/accounts/ranked', 'UnfollowController@index');
+        $r->get('/api/unfollows/accounts', 'UnfollowController@getAccounts');
+        $r->post('/unfollows/queue', 'UnfollowController@queueUnfollow');
+        $r->get('/unfollows/queue', 'UnfollowController@showQueue');
+        $r->post('/unfollows/execute', 'UnfollowController@executeUnfollows');
+        $r->post('/unfollows/remove', 'UnfollowController@removeFromQueue');
+        $r->post('/unfollows/clear', 'UnfollowController@clearQueue');
+        $r->get('/unfollows/statistics', 'UnfollowController@statistics');
 
         // Kanban board
         $r->get('/kanban', 'KanbanController@index');

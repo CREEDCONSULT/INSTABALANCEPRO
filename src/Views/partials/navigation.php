@@ -25,16 +25,23 @@ function isActive($path, $currentPath) {
         </li>
         
         <li class="sidebar-nav-item">
-            <a href="/unfollowers" class="sidebar-nav-link <?php echo isActive('/unfollowers', $currentPath); ?>">
-                <span class="sidebar-nav-icon"><i class="bi bi-graph-down"></i></span>
-                <span>Unfollowers</span>
+            <a href="/accounts/ranked" class="sidebar-nav-link <?php echo isActive('/accounts/ranked', $currentPath); ?>">
+                <span class="sidebar-nav-icon"><i class="bi bi-list-ol"></i></span>
+                <span>Ranked List</span>
             </a>
         </li>
         
         <li class="sidebar-nav-item">
-            <a href="/ranked-list" class="sidebar-nav-link <?php echo isActive('/ranked-list', $currentPath); ?>">
-                <span class="sidebar-nav-icon"><i class="bi bi-list-ol"></i></span>
-                <span>Ranked List</span>
+            <a href="/unfollows/queue" class="sidebar-nav-link <?php echo isActive('/unfollows/queue', $currentPath); ?>">
+                <span class="sidebar-nav-icon"><i class="bi bi-clock-history"></i></span>
+                <span>Unfollow Queue</span>
+            </a>
+        </li>
+        
+        <li class="sidebar-nav-item">
+            <a href="/unfollows/statistics" class="sidebar-nav-link <?php echo isActive('/unfollows/statistics', $currentPath); ?>">
+                <span class="sidebar-nav-icon"><i class="bi bi-bar-chart"></i></span>
+                <span>Statistics</span>
             </a>
         </li>
         
