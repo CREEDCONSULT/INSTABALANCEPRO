@@ -75,41 +75,28 @@ RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /et
 RUN a2dismod http2 2>/dev/null || true
 
 # Configure Apache for proper .htaccess handling
-RUN cat > /etc/apache2/conf-available/instabalance.conf << 'EOF'
-<Directory /var/www/html>
-    AllowOverride All
-    Require all granted
-</Directory>
-
-<Directory /var/www/html/public>
-    AllowOverride All
-    Require all granted
-    <IfModule mod_rewrite.c>
-        RewriteEngine On
-        RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteCond %{REQUEST_FILENAME} !-d
-        RewriteRule ^(.*)$ index.php?/$1 [QSA,L]
-    </IfModule>
-</Directory>
-
-# Set security headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-</IfModule>
-EOF
-
-RUN a2enconf instabalance
+COPY --chown=root:root /dev/null /etc/apache2/conf-available/instabalance.conf
+RUN echo '<Directory /var/www/html>' > /etc/apache2/conf-available/instabalance.conf && \
+    echo '    AllowOverride All' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '    Require all granted' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '</Directory>' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '<Directory /var/www/html/public>' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '    AllowOverride All' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '    Require all granted' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '</Directory>' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '<IfModule mod_headers.c>' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '    Header set X-Content-Type-Options "nosniff"' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '    Header set X-Frame-Options "SAMEORIGIN"' >> /etc/apache2/conf-available/instabalance.conf && \
+    echo '</IfModule>' >> /etc/apache2/conf-available/instabalance.conf && \
+    a2enconf instabalance
 
 # Create PHP configuration for production
-RUN cat > /usr/local/etc/php/conf.d/instabalance.ini << 'EOF'
-upload_max_filesize = 50M
-post_max_size = 50M
-max_execution_time = 300
-memory_limit = 256M
-session.gc_maxlifetime = 2592000
-EOF
+RUN echo 'upload_max_filesize = 50M' > /usr/local/etc/php/conf.d/instabalance.ini && \
+    echo 'post_max_size = 50M' >> /usr/local/etc/php/conf.d/instabalance.ini && \
+    echo 'max_execution_time = 300' >> /usr/local/etc/php/conf.d/instabalance.ini && \
+    echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/instabalance.ini && \
+    echo 'session.gc_maxlifetime = 2592000' >> /usr/local/etc/php/conf.d/instabalance.ini
 
 # Expose port
 EXPOSE 80
