@@ -1,8 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Enforce HTTPS
+    # Enforce HTTPS (skip on localhost for local dev)
     RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP_HOST} !^localhost
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     
     # Remove trailing slash

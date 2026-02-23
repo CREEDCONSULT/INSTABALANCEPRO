@@ -38,10 +38,10 @@ date_default_timezone_set('UTC');
 
 // Start session
 session_start([
-    'lifetime' => $config['session']['lifetime'],
-    'httponly' => true,
-    'secure' => !$config['app']['debug'],
-    'samesite' => 'Lax',
+    'cookie_lifetime' => $config['session']['lifetime'],
+    'cookie_httponly' => true,
+    'cookie_secure' => !$config['app']['debug'],
+    'cookie_samesite' => 'Lax',
 ]);
 
 try {

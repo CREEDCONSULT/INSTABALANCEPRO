@@ -16,7 +16,10 @@
   "autoload": {
     "psr-4": {
       "App\\": "src/"
-    }
+    },
+    "files": [
+      "src/Routes.php"
+    ]
   },
   "scripts": {
     "test": "phpunit",

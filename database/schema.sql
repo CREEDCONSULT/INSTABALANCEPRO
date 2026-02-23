@@ -379,7 +379,7 @@ CREATE TABLE kanban_cards (
     instagram_username VARCHAR(128) NOT NULL,
     
     -- Kanban column/status
-    column ENUM('review', 'queued', 'unfollowed', 'whitelisted') DEFAULT 'review',
+    `column` ENUM('review', 'queued', 'unfollowed', 'whitelisted') DEFAULT 'review',
     order_index INT DEFAULT 0,  -- Position within column for sorting
     
     -- Metadata snapshot (denormalized from account_insights for display)
@@ -392,8 +392,8 @@ CREATE TABLE kanban_cards (
     UNIQUE KEY unique_user_account_kanban (user_id, following_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (following_id) REFERENCES following(id) ON DELETE CASCADE,
-    INDEX idx_user_column (user_id, column),
-    INDEX idx_column_order (column, order_index)
+    INDEX idx_user_column (user_id, `column`),
+    INDEX idx_column_order (`column`, order_index)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -627,7 +627,7 @@ ALTER TABLE following ADD INDEX idx_user_not_in_followers (user_id, instagram_ac
 ALTER TABLE followers ADD INDEX idx_user_account_quick_check (user_id, instagram_account_id);
 ALTER TABLE activity_log ADD INDEX idx_user_created_action (user_id, created_at, action_type);
 ALTER TABLE unfollow_queue ADD INDEX idx_user_status_priority (user_id, status, priority);
-ALTER TABLE kanban_cards ADD INDEX idx_user_column_score (user_id, column, unfollow_priority_score);
+ALTER TABLE kanban_cards ADD INDEX idx_user_column_score (user_id, `column`, unfollow_priority_score);
 
 -- ============================================================================
 -- DATA INITIALIZATION

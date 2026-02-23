@@ -214,7 +214,16 @@ class Router
      */
     private function applyMiddleware(string $middlewareClass, Controller $controller): void
     {
-        if (strpos($middlewareClass, '\\') === false) {
+        // Map short middleware names to their full class names
+        $middlewareMap = [
+            'auth'  => 'AuthMiddleware',
+            'admin' => 'AdminMiddleware',
+            'csrf'  => 'CsrfMiddleware',
+        ];
+
+        if (isset($middlewareMap[$middlewareClass])) {
+            $middlewareClass = 'App\\Middleware\\' . $middlewareMap[$middlewareClass];
+        } elseif (strpos($middlewareClass, '\\') === false) {
             $middlewareClass = 'App\\Middleware\\' . $middlewareClass;
         }
 
